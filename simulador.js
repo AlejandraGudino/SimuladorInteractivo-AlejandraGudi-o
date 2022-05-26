@@ -1,5 +1,6 @@
 let cuenta = 0;
 let menuInicial = confirm("Bienvenido a Amazor! Desea comprar algun articulo?");
+let preguntarMenu = parseInt(prompt("ingrese 1 si desea ver la lista completa de articulos o  2 si desea Buscar un articulo en especifico?"));
 let menuLoop = confirm("Desea comprar algun articulo?");
 let total = 0;
 const articulos = [
@@ -27,13 +28,22 @@ const articulos = [
 const totalPedido = function(totalN, nuevoPrecio) {
     return totalN + nuevoPrecio
 }
+const buscarArticulo = function (articulos, nombreArticulo){
+  existeArticulo = articulos.map(articulos => articulos.title).indexOf(nombreArticulo)
+  if (existeArticulo != -1){
+    console.log(articulos[existeArticulo])
+  }else{
+    console.log("el articulo no existe")
+  }
+}
 
 if (menuInicial){
-    console.log(articulos)
-    while (menuLoop) {
-        let elegirProducto = parseInt(prompt("Ingrese el Id del producto que desea agregar"));
+    if (preguntarMenu === 1) {
+      console.log(articulos)
+      while (menuLoop) {
+          let elegirProducto = parseInt(prompt("Ingrese el Id del producto que desea agregar"));
 
-        switch (elegirProducto) {
+          switch (elegirProducto) {
             case 1:
                 console.log('Funko pop Agregado');
                 total = totalPedido(total,articulos[0].price)
@@ -60,6 +70,10 @@ if (menuInicial){
         if(!menuLoop){
             console.log(`el total de su compra es ${total}`)
         }
+      }
+    }else {
+      let buscarArticuloPregunta = prompt("ingrese el nombre del articulo a buscar")
+      buscarArticulo(articulos, buscarArticuloPregunta)
     }
 }else {
     console.log("Gracias por siempre elegir amazor");
