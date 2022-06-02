@@ -1,80 +1,189 @@
-let cuenta = 0;
-let menuInicial = confirm("Bienvenido a Amazor! Desea comprar algun articulo?");
-let preguntarMenu = parseInt(prompt("ingrese 1 si desea ver la lista completa de articulos o  2 si desea Buscar un articulo en especifico?"));
-let menuLoop = confirm("Desea comprar algun articulo?");
-let total = 0;
-const articulos = [
-    {
-      "title": "Funko pop",
-      "price": 123.45,
-      "id": 1
+const db = {
+    methods: {
+        find: (id) => {
+            return db.items.find((item) => item.id === id);
+        },
+        remove: (items) => {
+            items.forEach((item) => {
+                const product = db.methods.find(item.id);
+                product.qty = product.qty - item.qty;
+            });
+
+            console.log(db);
+        },
     },
-    {
-      "title": "Figura de Batman",
-      "price": 234.56,
-      "id": 2
+    items: [{
+            id: 0,
+            title: "Funko Pop",
+            price: 250,
+            qty: 5,
+        },
+        {
+            id: 1,
+            title: "Harry Potter DVD",
+            price: 345,
+            qty: 50,
+        },
+        {
+            id: 2,
+            title: "Phillips Hue",
+            price: 1300,
+            qty: 80,
+        },
+    ],
+};
+
+const shoppingCart = {
+    items: [],
+    methods: {
+        add: (id, qty) => {
+            const cartItem = shoppingCart.methods.get(id);
+            if (cartItem) {
+                if (shoppingCart.methods.hasInventory(id, qty + cartItem.qty)) {
+                    cartItem.qty++;
+                } else {
+                    alert("No hay más inventario");
+                }
+            } else {
+                shoppingCart.items.push({ id, qty });
+            }
+        },
+        remove: (id, qty) => {
+            const cartItem = shoppingCart.methods.get(id);
+
+            if (cartItem.qty - 1 > 0) {
+                cartItem.qty--;
+            } else {
+                shoppingCart.items = shoppingCart.items.filter(
+                    (item) => item.id !== id
+                );
+            }
+        },
+        count: () => {
+            return shoppingCart.items.reduce((acc, item) => acc + item.qyt, 0);
+        },
+        get: (id) => {
+            const index = shoppingCart.items.findIndex((item) => item.id === id);
+            return index >= 0 ? shoppingCart.items[index] : null;
+        },
+        getTotal: () => {
+            let total = 0;
+            shoppingCart.items.forEach((item) => {
+                const found = db.methods.find(item.id);
+                total += found.price * item.qty;
+            });
+            return total;
+        },
+        hasInventory: (id, qty) => {
+            return db.items.find((item) => item.id === id).qty - qty >= 0;
+        },
+        purchase: () => {
+            db.methods.remove(shoppingCart.items);
+        },
     },
-    {
-      "title": "Camiseta",
-      "price": 345.67,
-      "id": 3
-    },
-    {
-      "title": "Set de libros",
-      "price": 3662.25,
-      "id": 4
-    }
-  ]
-const totalPedido = function(totalN, nuevoPrecio) {
-    return totalN + nuevoPrecio
+};
+
+renderStore();
+
+function renderStore() {
+    const html = db.items.map((item) => {
+        return `
+          <div class="item">
+              <div class="title">${item.title}</div>
+              <div class="price">${numberToCurrency(item.price)}</div>
+              <div class="qty">${item.qty} units</div>
+              <div class="actions"><button class="add" data-id="${
+                item.id
+              }">Add to the shopping cart</button></div>
+          </div>`;
+    });
+
+    document.querySelector("#store-container").innerHTML = html.join("");
+
+    document.querySelectorAll(".item .actions .add").forEach((button) => {
+        button.addEventListener("click", (e) => {
+            const id = parseInt(button.getAttribute("data-id"));
+            const item = db.methods.find(id);
+
+            if (item && item.qty - 1 > 0) {
+                shoppingCart.methods.add(id, 1);
+                console.log(db, shoppingCart);
+                renderShoppingCart();
+            } else {
+                alert("Ya no hay existencia de ese artículo");
+            }
+        });
+    });
 }
-const buscarArticulo = function (articulos, nombreArticulo){
-  existeArticulo = articulos.map(articulos => articulos.title).indexOf(nombreArticulo)
-  if (existeArticulo != -1){
-    console.log(articulos[existeArticulo])
-  }else{
-    console.log("el articulo no existe")
-  }
+
+function renderShoppingCart() {
+    const html = shoppingCart.items.map((item) => {
+        const dbItem = db.methods.find(item.id);
+        return `
+              <div class="item">
+                  <div class="title">${dbItem.title}</div>
+                  <div class="price">${numberToCurrency(dbItem.price)}</div>
+                  <div class="qty">${item.qty} units</div>
+                  <div class="subtotal">Subtotal: ${numberToCurrency(
+                    item.qty * dbItem.price
+                  )}</div>
+                  <div class="actions">
+                      <button class="addOne" data-id="${dbItem.id}">+</button>
+                      <button class="removeOne" data-id="${dbItem.id}">-</button>
+                  </div>
+              </div>
+          `;
+    });
+    const closeButton = `
+    <div class="cart-header">
+      <button id="bClose">Close</button>
+    </div>`;
+    const purchaseButton =
+        shoppingCart.items.length > 0 ?
+        `<div class="cart-actions">
+      <button id="bPurchase">Terminar compra</button>
+    </div>` :
+        "";
+    const total = shoppingCart.methods.getTotal();
+    const totalDiv = `<div class="total">Total: ${numberToCurrency(total)}</div>`;
+    document.querySelector("#shopping-cart-container").innerHTML =
+        closeButton + html.join("") + totalDiv + purchaseButton;
+
+    document.querySelector("#shopping-cart-container").classList.remove("hide");
+    document.querySelector("#shopping-cart-container").classList.add("show");
+
+    document.querySelectorAll(".addOne").forEach((button) => {
+        button.addEventListener("click", (e) => {
+            const id = parseInt(button.getAttribute("data-id"));
+            shoppingCart.methods.add(id, 1);
+            renderShoppingCart();
+        });
+    });
+
+    document.querySelectorAll(".removeOne").forEach((button) => {
+        button.addEventListener("click", (e) => {
+            const id = parseInt(button.getAttribute("data-id"));
+            shoppingCart.methods.remove(id, 1);
+            renderShoppingCart();
+        });
+    });
+
+    document.querySelector("#bClose").addEventListener("click", (e) => {
+        document.querySelector("#shopping-cart-container").classList.remove("show");
+        document.querySelector("#shopping-cart-container").classList.add("hide");
+    });
+    const bPurchase = document.querySelector("#bPurchase");
+    if (bPurchase) {
+        bPurchase.addEventListener("click", (e) => {
+            shoppingCart.methods.purchase();
+        });
+    }
 }
 
-if (menuInicial){
-    if (preguntarMenu === 1) {
-      console.log(articulos)
-      while (menuLoop) {
-          let elegirProducto = parseInt(prompt("Ingrese el Id del producto que desea agregar"));
-
-          switch (elegirProducto) {
-            case 1:
-                console.log('Funko pop Agregado');
-                total = totalPedido(total,articulos[0].price)
-                break;
-            case 2:
-                console.log('Figura de Batman Agregado');
-                total = totalPedido(total,articulos[1].price)
-                break;
-            case 3:
-                console.log('Camiseta Agregado');
-                total = totalPedido(total,articulos[2].price)
-                break;
-            case 4:
-                console.log('Set de libros Agregado');
-                total = totalPedido(total,articulos[3].price)
-                break;
-            default:
-              console.log(`No tenemos el producto con el ID ${elegirProducto}.`);
-              break;
-          }
-
-        menuLoop = confirm("Desea Agregar algun otro producto?");
-
-        if(!menuLoop){
-            console.log(`el total de su compra es ${total}`)
-        }
-      }
-    }else {
-      let buscarArticuloPregunta = prompt("ingrese el nombre del articulo a buscar")
-      buscarArticulo(articulos, buscarArticuloPregunta)
-    }
-}else {
-    console.log("Gracias por siempre elegir amazor");
+function numberToCurrency(n) {
+    return new Intl.NumberFormat("en-US", {
+        maximumSignificantDigits: 2,
+        style: "currency",
+        currency: "USD",
+    }).format(n);
 }
